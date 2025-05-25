@@ -39,15 +39,41 @@ export class YandexDataTransformer implements DataTransformer {
 				transformed.ad_id = record.AdId;
 			}
 
-			// Преобразование метрик в числа
+			// Преобразование метрик в числа (НЕ финансовых)
 			const numericFields = [
-				'Impressions', 'Clicks', 'Cost', 'Conversions',
+				'Impressions', 'Clicks', 'Conversions',
 				'CampaignId', 'AdGroupId', 'AdId', 'CriterionId'
 			];
 
 			numericFields.forEach(field => {
 				if (record[field] !== undefined && record[field] !== '') {
 					transformed[field] = Number(record[field]) || 0;
+				}
+			});
+
+			// ===== ФИНАНСОВЫЕ ПОЛЯ - КОНВЕРТАЦИЯ ИЗ МИКРОРУБЛЕЙ В РУБЛИ =====
+			// Источник: https://yandex.ru/dev/direct/doc/ref-v5/dictionaries/get-docpage/
+			// 1 рубль = 1,000,000 микрорублей
+			const MICROROUBLES_TO_ROUBLES = 1_000_000;
+
+			const financialFields = [
+				'Cost',           // общая стоимость
+				'AvgCpc',         // средняя цена за клик
+				'AvgCpm',         // средняя цена за тысячу показов
+				'CostPerConversion', // стоимость конверсии
+				'Revenue',        // доход/выручка
+				'Profit'          // прибыль (добавлено в changelog API v5)
+			];
+
+			financialFields.forEach(field => {
+				if (record[field] !== undefined && record[field] !== '') {
+					const microroubleValue = Number(record[field]);
+					if (!isNaN(microroubleValue)) {
+						// Конвертируем из микрорублей в рубли
+						transformed[field] = microroubleValue / MICROROUBLES_TO_ROUBLES;
+					} else {
+						transformed[field] = 0;
+					}
 				}
 			});
 
@@ -62,15 +88,6 @@ export class YandexDataTransformer implements DataTransformer {
 						value = value / 100; // Преобразуем проценты в десятичную дробь
 					}
 					transformed[field] = value;
-				}
-			});
-
-			// Преобразование стоимостных полей (из копеек в рубли, если необходимо)
-			const costFields = ['Cost', 'AvgCpc', 'AvgCpm', 'CostPerConversion', 'Revenue'];
-			costFields.forEach(field => {
-				if (record[field] !== undefined && record[field] !== '') {
-					// Yandex Direct возвращает стоимость в рублях с копейками
-					transformed[field] = Number(record[field]) || 0;
 				}
 			});
 
@@ -89,7 +106,10 @@ export class YandexDataTransformer implements DataTransformer {
 			// Добавляем источник данных
 			transformed.data_source = 'yandex_direct';
 
-			// Вычисляем дополнительные метрики
+			// Добавляем информацию о валюте
+			transformed.currency = 'RUB';
+
+			// Вычисляем дополнительные метрики (уже в рублях)
 			if (transformed.Cost && transformed.Clicks && transformed.Clicks > 0) {
 				transformed.avg_cpc = transformed.Cost / transformed.Clicks;
 			}
@@ -108,6 +128,12 @@ export class YandexDataTransformer implements DataTransformer {
 
 			if (transformed.Cost && transformed.Conversions && transformed.Conversions > 0) {
 				transformed.cost_per_conversion = transformed.Cost / transformed.Conversions;
+			}
+
+			// ROI и ROAS расчеты (если есть Revenue)
+			if (transformed.Revenue && transformed.Cost && transformed.Cost > 0) {
+				transformed.roas = transformed.Revenue / transformed.Cost; // Return on Ad Spend
+				transformed.roi = ((transformed.Revenue - transformed.Cost) / transformed.Cost) * 100; // ROI в процентах
 			}
 
 			return transformed;
