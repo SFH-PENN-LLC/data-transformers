@@ -3,6 +3,7 @@ import { NoOpTransformer } from './transformers/base.js';
 import { MetaDataTransformer } from './transformers/meta.js';
 import { GoogleDataTransformer } from './transformers/google.js';
 import { TikTokDataTransformer } from './transformers/tiktok.js';
+import { YandexDataTransformer } from './transformers/yandex.js';
 
 export class TransformerRegistry {
 	private static transformers = new Map<string, DataTransformer>([
@@ -10,6 +11,8 @@ export class TransformerRegistry {
 		['facebook', new MetaDataTransformer()], // алиас
 		['google', new GoogleDataTransformer()],
 		['tiktok', new TikTokDataTransformer()],
+		['yandex', new YandexDataTransformer()],
+		['yandex_direct', new YandexDataTransformer()], // алиас
 		['noop', new NoOpTransformer()]
 	]);
 
