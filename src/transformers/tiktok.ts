@@ -1,5 +1,6 @@
 import {DataTransformer} from "../types";
 import {DateStandardizer} from "./baseDataTransformer";
+import {FieldNormalizer} from "../utils/FieldNormalizer";
 
 /**
  * TikTok трансформер с агрегацией
@@ -19,7 +20,12 @@ export class TikTokDataTransformer implements DataTransformer {
 	}
 
 	private transformTikTokSpecific(record: Record<string, any>): Record<string, any> {
-		const transformed = { ...record };
+		// Нормализуем все поля из CamelCase в snake_case
+		const transformed = FieldNormalizer.normalize(record);
+
+		// ===== МЕТАДАННЫЕ =====
+		transformed.data_source = 'tiktok';
+		transformed.currency = 'USD'; // По умолчанию
 
 		// TikTok-специфичные преобразования добавить при необходимости
 
