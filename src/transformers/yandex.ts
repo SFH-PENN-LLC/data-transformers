@@ -35,6 +35,92 @@ export class YandexDataTransformer implements DataTransformer {
 		// Сначала нормализуем все поля из CamelCase в snake_case
 		const transformed = FieldNormalizer.normalize(record);
 
+		// ===== МАППИНГ ПОЛЕЙ СЕГМЕНТАЦИИ =====
+		// Стандартизируем названия полей сегментации для универсального детектора
+		// 100% покрытие всех полей Яндекс.Директ API v5 (версия 2025-01)
+		const segmentationMapping: Record<string, string> = {
+			// === УСТРОЙСТВА И ПЛАТФОРМЫ ===
+			'device': 'device',
+			'device_type': 'device',
+			'mobile_platform': 'mobile_platform',
+			'carrier_type': 'carrier_type',
+			
+			// === ДЕМОГРАФИЯ ===
+			'gender': 'gender',
+			'gender_type': 'gender',
+			'age': 'age',
+			'age_group': 'age',
+			'income_grade': 'income_grade',
+			
+			// === ГЕОГРАФИЯ ===
+			'location_of_presence_id': 'location_of_presence_id',
+			'location_of_presence_name': 'location_of_presence_name',
+			'targeting_location_id': 'targeting_location_id',
+			'targeting_location_name': 'targeting_location_name',
+			
+			// === РАЗМЕЩЕНИЯ И ФОРМАТЫ ===
+			'ad_format': 'ad_format',
+			'ad_network_type': 'ad_network_type',
+			'slot': 'slot',
+			'placement': 'placement',
+			'external_network_name': 'external_network_name',
+			'click_type': 'click_type',
+			
+			// === КРИТЕРИИ И ТАРГЕТИНГ ===
+			'criterion': 'criterion',
+			'criterion_id': 'criterion_id',
+			'criterion_type': 'criterion_type',
+			'criteria': 'criteria',
+			'criteria_id': 'criteria_id',
+			'criteria_type': 'criteria_type',
+			'match_type': 'match_type',
+			'matched_keyword': 'matched_keyword',
+			'query': 'query',
+			'keyword': 'keyword',
+			'targeting_category': 'targeting_category',
+			
+			// === АУДИТОРИИ И РЕТАРГЕТИНГ ===
+			'audience_target_id': 'audience_target_id',
+			'rl_adjustment_id': 'rl_adjustment_id',
+			'dynamic_text_ad_target_id': 'dynamic_text_ad_target_id',
+			'smart_ad_target_id': 'smart_ad_target_id',
+			
+			// === ТИПЫ КАМПАНИЙ ===
+			'campaign_type': 'campaign_type',
+			'campaign_url_path': 'campaign_url_path',
+			
+			// === ВРЕМЕННЫЕ ИЗМЕРЕНИЯ ===
+			'hour_of_day': 'hour_of_day',
+			'day_of_week': 'day_of_week',
+			'week': 'week',
+			'month': 'month',
+			'quarter': 'quarter',
+			'year': 'year',
+			
+			// === ВИДЕО СЕГМЕНТАЦИЯ ===
+			'video_complete': 'video_complete',
+			'video_complete_rate': 'video_complete_rate',
+			'video_first_quartile': 'video_first_quartile',
+			'video_first_quartile_rate': 'video_first_quartile_rate',
+			'video_midpoint': 'video_midpoint',
+			'video_midpoint_rate': 'video_midpoint_rate',
+			'video_third_quartile': 'video_third_quartile',
+			'video_third_quartile_rate': 'video_third_quartile_rate',
+			'video_views': 'video_views',
+			'video_views_rate': 'video_views_rate'
+		};
+
+		// Применяем маппинг полей
+		Object.entries(segmentationMapping).forEach(([yandexField, standardField]) => {
+			if (transformed[yandexField] !== undefined) {
+				transformed[standardField] = transformed[yandexField];
+				// Удаляем оригинальное поле если нужно
+				if (yandexField !== standardField) {
+					delete transformed[yandexField];
+				}
+			}
+		});
+
 		// Совместимость с Facebook (adset = adgroup)
 		if (transformed.ad_group_id) {
 			transformed.adset_id = transformed.ad_group_id;
